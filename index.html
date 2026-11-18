@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Deeple</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ["Outfit", "ui-sans-serif", "system-ui", "sans-serif"],
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    :root {
+      --sea-top: #c5ecff;
+      --sea-bottom: #1477b0;
+      --ink: #0c1c2a;
+      --inverse: #f4f8fb;
+      --muted: rgba(12, 28, 42, 0.62);
+      --line: rgba(12, 28, 42, 0.28);
+      --mark: #e39a45;
+      --max-depth: 11000;
+    }
+
+    html,
+    body {
+      min-height: 100%;
+    }
+
+    body {
+      margin: 0;
+      background: linear-gradient(180deg, var(--sea-top) 0%, var(--sea-bottom) 100%);
+      color: var(--ink);
+      font-family: Outfit, ui-sans-serif, system-ui, sans-serif;
+      transition: color 180ms ease;
+    }
+
+    .muted { color: var(--muted); }
+    .mark { color: var(--mark); }
+
+    #depth {
+      writing-mode: vertical-lr;
+      direction: ltr;
+      -webkit-appearance: none;
+      appearance: none;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      background: transparent;
+      cursor: grab;
+      touch-action: none;
+    }
+
+    #depth:active { cursor: grabbing; }
+
+    #depth:disabled {
+      opacity: 1;
+      cursor: default;
+    }
+
+    #depth:focus { outline: none; }
+
+    #depth:focus-visible::-webkit-slider-thumb {
+      box-shadow: 0 0 0 6px color-mix(in srgb, var(--ink) 16%, transparent), 0 0 0 2px var(--inverse);
+    }
+
+    #depth::-webkit-slider-runnable-track {
+      width: 2px;
+      height: 100%;
+      background: transparent;
+      border: none;
+    }
+
+    #depth::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      margin-left: -7px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--ink);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--ink) 16%, transparent);
+    }
+
+    #depth::-moz-range-track {
+      width: 2px;
+      height: 100%;
+      background: transparent;
+      border: none;
+    }
+
+    #depth::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border: 0;
+      border-radius: 999px;
+      background: var(--ink);
+      box-shadow: 0 0 0 4px color-mix(in srgb, var(--ink) 16%, transparent);
+    }
+
+    .primary {
+      border: 1px solid var(--line);
+      color: var(--ink);
+      background: transparent;
+      transition: background 160ms ease, color 160ms ease, border-color 160ms ease;
+    }
+
+    .primary:hover,
+    .primary:focus-visible {
+      background: var(--ink);
+      color: var(--inverse);
+      outline: none;
+    }
+
+    .card-surface {
+      border: 1px solid var(--line);
+      background: color-mix(in srgb, var(--inverse) 8%, transparent);
+      backdrop-filter: blur(12px);
+    }
+
+    #actual-tag,
+    #guess-tag {
+      text-shadow: 0 1px 0 color-mix(in srgb, var(--sea-bottom) 35%, transparent);
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      #actual-marker { transition: none; }
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased">
+  <div class="mx-auto flex min-h-screen max-w-6xl flex-col px-5 py-6 md:px-10 md:py-8">
+    <header class="flex items-center justify-between">
+      <div class="flex items-center gap-4">
+        <p class="text-sm font-medium tracking-[0.28em] uppercase">Deeple</p>
+        <span id="mode-badge" class="rounded-full px-2.5 py-0.5 text-[0.62rem] font-medium tracking-widest uppercase" style="border: 1px solid var(--line)">Daily</span>
+      </div>
+      <div class="flex items-center gap-6">
+        <div id="round-dots" class="flex items-center gap-1.5" aria-label="Round progress"></div>
+        <p id="session" class="text-xs tabular-nums muted"></p>
+      </div>
+    </header>
+
+    <main id="game-view" class="grid flex-1 items-center gap-10 py-8 md:grid-cols-[minmax(0,1fr)_16rem_minmax(0,1fr)] md:gap-8 md:py-6">
+      <!-- LEFT: Species Info & Auto-Fetched Photo -->
+      <section class="max-w-sm md:justify-self-start">
+        <p id="round-label" class="text-[0.68rem] font-medium tracking-[0.24em] uppercase muted">Species · 1 of 6</p>
+        
+        <div id="photo-wrap" class="mt-4 hidden overflow-hidden rounded-lg" style="border: 1px solid var(--line); background: rgba(0,0,0,0.12);">
+          <img id="creature-photo" src="" alt="" class="h-44 w-full object-cover transition-opacity duration-300" loading="eager">
+        </div>
+
+        <h1 id="creature-name" class="mt-4 text-4xl font-medium tracking-tight md:text-5xl">—</h1>
+        <p id="creature-latin" class="mt-1.5 text-sm italic muted"></p>
+        <p id="creature-blurb" class="mt-5 text-sm leading-relaxed muted"></p>
+      </section>
+
+      <!-- CENTER: Depth Column -->
+      <section class="mx-auto w-full max-w-[16rem]" aria-label="Depth scale">
+        <div id="column" class="relative h-[min(58vh,440px)] md:h-[min(70vh,540px)]">
+          <div class="pointer-events-none absolute bottom-0 left-1/2 top-0 w-px -translate-x-1/2" style="background: var(--line)"></div>
+          <div id="fill" class="pointer-events-none absolute left-1/2 top-0 w-px -translate-x-1/2" style="height: 0; background: var(--ink)"></div>
+          <div id="error-span" class="pointer-events-none absolute left-1/2 hidden w-px -translate-x-1/2" style="background: var(--mark)"></div>
+          <div id="zones" class="pointer-events-none absolute inset-y-0 left-0 w-[34%] text-right text-[0.65rem] tracking-wide muted"></div>
+
+          <div id="actual-marker" class="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 -translate-y-1/2">
+            <span class="block h-3 w-3 rounded-full border-2" style="border-color: var(--mark); background: color-mix(in srgb, var(--mark) 88%, white)"></span>
+          </div>
+          <p id="actual-tag" class="pointer-events-none absolute right-[calc(50%+1.6rem)] hidden w-[7.4rem] text-right text-[0.7rem] font-medium leading-tight mark"></p>
+          <p id="guess-tag" class="pointer-events-none absolute left-[calc(50%+1.6rem)] w-[6.8rem] text-[0.7rem] font-medium tabular-nums leading-tight"></p>
+
+          <input
+            id="depth"
+            class="absolute inset-0"
+            type="range"
+            min="0"
+            max="11000"
+            step="10"
+            value="0"
+            aria-label="Habitat depth in meters"
+            aria-orientation="vertical"
+            aria-valuemin="0"
+            aria-valuemax="11000"
+            aria-valuenow="0"
+            aria-valuetext="0 meters"
+          >
+        </div>
+        <div class="mt-3 flex justify-between text-[0.65rem] tracking-wide muted">
+          <span>0 m</span>
+          <span>11,000 m</span>
+        </div>
+      </section>
+
+      <!-- RIGHT: Controls & Feedback -->
+      <section class="max-w-xs md:justify-self-end">
+        <form id="guess-form">
+          <div id="prompt">
+            <p class="text-[0.68rem] font-medium tracking-[0.24em] uppercase muted">Your guess</p>
+            <p id="guess-readout" class="mt-3 text-4xl font-medium tabular-nums tracking-tight">0 m</p>
+            <p class="mt-4 text-sm leading-relaxed muted">Drag the column from the surface to the trench, then submit.</p>
+          </div>
+
+          <div id="result" class="hidden" aria-live="polite">
+            <p id="tier-title" class="text-xs font-semibold tracking-[0.22em] uppercase mark">One in a Krillion!</p>
+            <p class="mt-2 flex items-baseline gap-2">
+              <span id="score" class="text-5xl font-medium tabular-nums tracking-tight">0</span>
+              <span class="text-sm muted">/ 100</span>
+            </p>
+            <p id="delta" class="mt-3 text-sm font-medium"></p>
+            <p id="actual-line" class="mt-0.5 text-xs muted"></p>
+            <p id="verdict" class="mt-4 text-sm leading-relaxed muted"></p>
+          </div>
+
+          <button id="action" class="primary mt-8 px-6 py-3 text-[0.68rem] font-medium tracking-[0.22em] uppercase" type="submit">
+            Submit
+          </button>
+        </form>
+        <p class="mt-8 max-w-[16rem] text-[0.65rem] leading-relaxed muted">Typical habitat depth, not the deepest a species has been recorded.</p>
+      </section>
+    </main>
+
+    <!-- ENDGAME SUMMARY MODAL VIEW -->
+    <section id="summary-view" class="mx-auto my-auto hidden w-full max-w-xl py-8">
+      <div class="card-surface rounded-2xl p-6 md:p-8">
+        <div class="flex items-baseline justify-between">
+          <p id="summary-kicker" class="text-[0.68rem] font-medium tracking-[0.24em] uppercase muted">Daily Complete</p>
+          <p id="countdown" class="text-xs tabular-nums muted"></p>
+        </div>
+
+        <div class="mt-4 flex flex-wrap items-baseline justify-between gap-4">
+          <div>
+            <p class="flex items-baseline gap-2">
+              <span id="final-score" class="text-5xl font-semibold tabular-nums tracking-tight">0</span>
+              <span class="text-sm muted">/ 600</span>
+            </p>
+            <p id="final-rank" class="mt-1 text-sm font-medium mark"></p>
+          </div>
+
+          <div class="flex gap-6 text-right">
+            <div>
+              <p class="text-[0.62rem] tracking-[0.2em] uppercase muted">Streak</p>
+              <p id="stat-streak" class="mt-1 text-2xl font-medium tabular-nums">1</p>
+            </div>
+            <div>
+              <p class="text-[0.62rem] tracking-[0.2em] uppercase muted">Best</p>
+              <p id="stat-best" class="mt-1 text-2xl font-medium tabular-nums">0</p>
+            </div>
+          </div>
+        </div>
+
+        <div id="breakdown-list" class="mt-6 divide-y" style="border-color: var(--line)"></div>
+
+        <div class="mt-8 flex flex-wrap items-center gap-3">
+          <button id="share-btn" type="button" class="primary px-6 py-3 text-[0.68rem] font-medium tracking-[0.22em] uppercase">
+            Share Results
+          </button>
+          <button id="practice-btn" type="button" class="primary px-5 py-3 text-[0.68rem] font-medium tracking-[0.22em] uppercase opacity-80">
+            Play Practice Set
+          </button>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <script>
+    const MAX_DEPTH = 11000;
+    const ROUNDS_PER_GAME = 6;
+    const STORAGE_KEY = "deeple_state_v1";
+
+    const CREATURES = [
+      { name: "Portuguese man o' war", latin: "Physalia physalis", depth: 0, blurb: "A surface drifter: a colony of stinging zooids under a gas float.", fact: "It lives at the surface, blown by the wind rather than swimming." },
+      { name: "Clownfish", latin: "Amphiprion ocellaris", depth: 10, blurb: "A small reef fish that shelters in an anemone.", fact: "It keeps to shallow coral reefs, rarely leaving the anemone’s tentacles." },
+      { name: "Green sea turtle", latin: "Chelonia mydas", depth: 20, blurb: "A grazer of seagrass beds and coral shallows.", fact: "It feeds in shallow coastal water, even though it can dive much deeper." },
+      { name: "Reef manta ray", latin: "Mobula alfredi", depth: 40, blurb: "A wide, quiet filter feeder over tropical reefs.", fact: "Reef mantas spend most of their time in the upper few dozen meters." },
+      { name: "Bottlenose dolphin", latin: "Tursiops truncatus", depth: 30, blurb: "A coastal cetacean that hunts in small groups.", fact: "Coastal bottlenose dolphins do most of their hunting near the surface." },
+      { name: "Great white shark", latin: "Carcharodon carcharias", depth: 50, blurb: "A heavy-bodied hunter of seals and fish along coasts.", fact: "When hunting, white sharks typically patrol the sunlit coastal layer." },
+      { name: "Whale shark", latin: "Rhincodon typus", depth: 80, blurb: "The largest living fish, sieving plankton as it cruises.", fact: "Whale sharks feed in warm surface water, with most time spent above 100 m." },
+      { name: "Blue whale", latin: "Balaenoptera musculus", depth: 120, blurb: "A baleen whale that lunges through clouds of krill.", fact: "Feeding dives are usually shallow lunges, on the order of a hundred meters." },
+      { name: "Coelacanth", latin: "Latimeria chalumnae", depth: 200, blurb: "A living fossil that rests by day in rocky submarine caves.", fact: "Comoro coelacanths shelter in caves around 200 m down." },
+      { name: "Chambered nautilus", latin: "Nautilus pompilius", depth: 300, blurb: "A shelled cephalopod that rises through the water after dusk.", fact: "By day it holds near 300 m, then climbs the water column at night." },
+      { name: "Lanternfish", latin: "Myctophidae", depth: 500, blurb: "A thumb-sized fish carrying rows of tiny light organs.", fact: "Lanternfish spend the day around 500 m and rise toward the surface at night." },
+      { name: "Barreleye", latin: "Macropinna microstoma", depth: 650, blurb: "A fish with a transparent forehead and tubular green eyes.", fact: "Barreleyes hover in the twilight zone, looking up for silhouettes." },
+      { name: "Giant squid", latin: "Architeuthis dux", depth: 800, blurb: "A deep cephalopod with eyes the size of dinner plates.", fact: "Giant squid hunt in the dark around 800 m, where sperm whales also dive." },
+      { name: "Vampire squid", latin: "Vampyroteuthis infernalis", depth: 900, blurb: "Neither vampire nor squid, cloaked in a web between its arms.", fact: "It drifts in low-oxygen water near 900 m, feeding on marine snow." },
+      { name: "Blobfish", latin: "Psychrolutes marcidus", depth: 1200, blurb: "A loose-bodied bottom fish built for crushing pressure.", fact: "Off Australia it lives on the seafloor around 1,200 m." },
+      { name: "Sperm whale", latin: "Physeter macrocephalus", depth: 1000, blurb: "A toothed whale that hunts squid, then returns to breathe.", fact: "Foraging dives commonly reach about 1,000 m before the whale surfaces." },
+      { name: "Fanfin angler", latin: "Caulophrynidae", depth: 1600, blurb: "A bathypelagic angler with a glowing lure on its snout.", fact: "Fanfins fish the midnight zone, around 1,600 m, in open water." },
+      { name: "Fangtooth", latin: "Anoplogaster cornuta", depth: 2000, blurb: "A compact fish that is mostly jaw and needle teeth.", fact: "Adult fangtooths are common around 2,000 m." },
+      { name: "Yeti crab", latin: "Kiwa hirsuta", depth: 2300, blurb: "A blind white crab that farms bacteria on its bristled arms.", fact: "It was found on hydrothermal vents about 2,300 m down." },
+      { name: "Dumbo octopus", latin: "Grimpoteuthis", depth: 3500, blurb: "A finned octopus that hovers just above the mud.", fact: "Most dumbo octopuses live on the abyssal seafloor near 3,500 m." },
+      { name: "Sea pig", latin: "Scotoplanes", depth: 4300, blurb: "A translucent sea cucumber walking the plain on tube feet.", fact: "Sea pigs are abundant on abyssal plains around 4,300 m." },
+      { name: "Abyssal grenadier", latin: "Coryphaenoides armatus", depth: 5100, blurb: "A rattail fish, common and widespread on the deep seafloor.", fact: "This grenadier is a regular resident near 5,100 m." },
+      { name: "Mariana snailfish", latin: "Pseudoliparis swirei", depth: 8000, blurb: "A small, translucent fish of trench walls.", fact: "It is the deepest known fish, living around 8,000 m in the Mariana Trench." },
+      { name: "Hadal amphipod", latin: "Hirondellea gigas", depth: 10400, blurb: "A scavenging crustacean of the deepest trench floors.", fact: "Hirondellea gigas patrols the hadal seafloor near 10,400 m." },
+    ];
+
+    const ZONES = [
+      { depth: 700, label: "Twilight" },
+      { depth: 2500, label: "Midnight" },
+      { depth: 5000, label: "Abyss" },
+      { depth: 8500, label: "Hadal" },
+    ];
+
+    const SURFACE = [
+      [197, 236, 255],
+      [20, 119, 176],
+    ];
+    const ABYSS = [
+      [6, 10, 18],
+      [0, 0, 0],
+    ];
+
+    const depthInput = document.getElementById("depth");
+    const column = document.getElementById("column");
+    const fill = document.getElementById("fill");
+    const errorSpan = document.getElementById("error-span");
+    const zonesEl = document.getElementById("zones");
+    const actualMarker = document.getElementById("actual-marker");
+    const actualTag = document.getElementById("actual-tag");
+    const guessTag = document.getElementById("guess-tag");
+    const roundLabel = document.getElementById("round-label");
+    const roundDots = document.getElementById("round-dots");
+    const modeBadge = document.getElementById("mode-badge");
+    const photoWrap = document.getElementById("photo-wrap");
+    const photoEl = document.getElementById("creature-photo");
+    const nameEl = document.getElementById("creature-name");
+    const latinEl = document.getElementById("creature-latin");
+    const blurbEl = document.getElementById("creature-blurb");
+    const promptEl = document.getElementById("prompt");
+    const resultEl = document.getElementById("result");
+    const tierTitleEl = document.getElementById("tier-title");
+    const scoreEl = document.getElementById("score");
+    const deltaEl = document.getElementById("delta");
+    const actualLine = document.getElementById("actual-line");
+    const verdictEl = document.getElementById("verdict");
+    const guessReadout = document.getElementById("guess-readout");
+    const actionBtn = document.getElementById("action");
+    const sessionEl = document.getElementById("session");
+    const form = document.getElementById("guess-form");
+    const gameView = document.getElementById("game-view");
+    const summaryView = document.getElementById("summary-view");
+    const summaryKicker = document.getElementById("summary-kicker");
+    const finalScoreEl = document.getElementById("final-score");
+    const finalRankEl = document.getElementById("final-rank");
+    const statStreakEl = document.getElementById("stat-streak");
+    const statBestEl = document.getElementById("stat-best");
+    const breakdownList = document.getElementById("breakdown-list");
+    const shareBtn = document.getElementById("share-btn");
+    const practiceBtn = document.getElementById("practice-btn");
+    const countdownEl = document.getElementById("countdown");
+
+    let deck = [];
+    let roundIndex = 0;
+    let creature = null;
+    let phase = "guess";
+    let history = [];
+    let isPractice = false;
+
+    function getTodayKey() {
+      const now = new Date();
+      return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+    }
+
+    function getYesterdayKey() {
+      const d = new Date();
+      d.setDate(d.getDate() - 1);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    }
+
+    function seededRandom(seedStr) {
+      let h = 2166136261 >>> 0;
+      for (let i = 0; i < seedStr.length; i++) {
+        h ^= seedStr.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+      }
+      return function () {
+        h += 0x6D2B79F5;
+        let t = Math.imul(h ^ (h >>> 15), 1 | h);
+        t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+        return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+      };
+    }
+
+    function buildDeck(seedKey) {
+      const rng = seededRandom(seedKey);
+      const pool = [...CREATURES];
+      for (let i = pool.length - 1; i > 0; i--) {
+        const j = Math.floor(rng() * (i + 1));
+        [pool[i], pool[j]] = [pool[j], pool[i]];
+      }
+      return pool.slice(0, ROUNDS_PER_GAME);
+    }
+
+    function loadState() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        return raw ? JSON.parse(raw) : { streak: 0, bestTotal: 0, lastDate: null, lastHistory: [] };
+      } catch {
+        return { streak: 0, bestTotal: 0, lastDate: null, lastHistory: [] };
+      }
+    }
+
+    function saveDailyCompletion(totalScore, roundHistory) {
+      const state = loadState();
+      const today = getTodayKey();
+      if (state.lastDate !== today) {
+        state.streak = state.lastDate === getYesterdayKey() ? (state.streak || 0) + 1 : 1;
+        state.lastDate = today;
+      }
+      state.bestTotal = Math.max(state.bestTotal || 0, totalScore);
+      state.lastHistory = roundHistory;
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch {}
+      return state;
+    }
+
+    function formatMeters(meters) {
+      return `${meters.toLocaleString("en-US")} m`;
+    }
+
+    function mix(a, b, t) {
+      return a.map((channel, i) => Math.round(channel + (b[i] - channel) * t));
+    }
+
+    function rgb(channels) {
+      return `rgb(${channels[0]}, ${channels[1]}, ${channels[2]})`;
+    }
+
+    function luminance(channels) {
+      const linear = channels.map((value) => {
+        const s = value / 255;
+        return s <= 0.03928 ? s / 12.92 : ((s + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+    }
+
+    function applyOcean(depth) {
+      const eased = (depth / MAX_DEPTH) ** 0.75;
+      const top = mix(SURFACE[0], ABYSS[0], eased);
+      const bottom = mix(SURFACE[1], ABYSS[1], eased);
+      const root = document.documentElement;
+      root.style.setProperty("--sea-top", rgb(top));
+      root.style.setProperty("--sea-bottom", rgb(bottom));
+
+      const dark = luminance(mix(top, bottom, 0.45)) < 0.28;
+      const ink = dark ? [244, 248, 251] : [12, 28, 42];
+      const inverse = dark ? [8, 12, 18] : [244, 248, 251];
+      root.style.setProperty("--ink", rgb(ink));
+      root.style.setProperty("--inverse", rgb(inverse));
+      root.style.setProperty("--muted", `rgba(${ink[0]}, ${ink[1]}, ${ink[2]}, 0.64)`);
+      root.style.setProperty("--line", `rgba(${ink[0]}, ${ink[1]}, ${ink[2]}, 0.32)`);
+    }
+
+    function anchorTransform(y, height) {
+      if (y < 16) return "translateY(0)";
+      if (y > height - 16) return "translateY(-100%)";
+      return "translateY(-50%)";
+    }
+
+    function renderZones() {
+      zonesEl.innerHTML = "";
+      const height = column.clientHeight || 1;
+      ZONES.forEach((zone) => {
+        const label = document.createElement("span");
+        const y = (zone.depth / MAX_DEPTH) * height;
+        label.className = "absolute right-0 whitespace-nowrap";
+        label.style.top = `${y}px`;
+        label.style.transform = anchorTransform(y, height);
+        label.textContent = zone.label;
+        zonesEl.appendChild(label);
+      });
+    }
+
+    function renderRoundDots() {
+      roundDots.innerHTML = "";
+      for (let i = 0; i < ROUNDS_PER_GAME; i++) {
+        const dot = document.createElement("span");
+        dot.className = "block h-2 w-2 rounded-full transition-all";
+        if (i < history.length) {
+          dot.style.background = "var(--mark)";
+        } else if (i === roundIndex && summaryView.classList.contains("hidden")) {
+          dot.style.background = "var(--ink)";
+        } else {
+          dot.style.background = "var(--line)";
+        }
+        roundDots.appendChild(dot);
+      }
+    }
+
+    function currentGuess() {
+      return Number(depthInput.value);
+    }
+
+    function placeGuessTag() {
+      const height = column.clientHeight;
+      const y = (currentGuess() / MAX_DEPTH) * height;
+      guessTag.style.top = `${y}px`;
+      guessTag.style.transform = anchorTransform(y, height);
+      guessTag.textContent = phase === "reveal" ? `You · ${formatMeters(currentGuess())}` : formatMeters(currentGuess());
+      fill.style.height = `${(currentGuess() / MAX_DEPTH) * 100}%`;
+      depthInput.setAttribute("aria-valuenow", String(currentGuess()));
+      depthInput.setAttribute("aria-valuetext", formatMeters(currentGuess()));
+      guessReadout.textContent = formatMeters(currentGuess());
+    }
+
+    function placeActual() {
+      const height = column.clientHeight;
+      const y = (creature.depth / MAX_DEPTH) * height;
+      actualMarker.style.top = `${y}px`;
+      actualTag.style.top = `${y}px`;
+      actualTag.style.transform = anchorTransform(y, height);
+      actualTag.textContent = `Actual · ${formatMeters(creature.depth)}`;
+
+      const guessY = (currentGuess() / MAX_DEPTH) * height;
+      const top = Math.min(guessY, y);
+      const span = Math.max(Math.abs(guessY - y), 1);
+      errorSpan.style.top = `${top}px`;
+      errorSpan.style.height = `${span}px`;
+
+      separateTags(guessY, y, height);
+    }
+
+    function separateTags(guessY, actualY, height) {
+      if (Math.abs(guessY - actualY) > 36) return;
+      const guessAbove = guessY <= actualY;
+      guessTag.style.transform = anchorTransform(guessY + (guessAbove ? -16 : 16), height);
+      actualTag.style.transform = anchorTransform(actualY + (guessAbove ? 16 : -16), height);
+    }
+
+    function scoreFor(guess, actual) {
+      const error = Math.abs(guess - actual);
+      const score = Math.max(0, Math.round(100 * (1 - error / MAX_DEPTH)));
+      return { error, score };
+    }
+
+    function tierFor(score, error) {
+      if (error === 0 || score === 100) {
+        return { title: "One in a Krillion!", verdict: "Dead on the habitat depth.", emoji: "🟦" };
+      }
+      if (score >= 94) {
+        return { title: "Abyssal Sniper", verdict: "Pinpoint accuracy on the scale of the ocean.", emoji: "🟦" };
+      }
+      if (score >= 85) {
+        return { title: "Deep-Cut", verdict: "Right in the creature's water column.", emoji: "🟩" };
+      }
+      if (score >= 70) {
+        return { title: "Schooler", verdict: "Right neighborhood of the water column.", emoji: "🟨" };
+      }
+      if (score >= 45) {
+        return { title: "Off the Drop-Off", verdict: "Drifted out of their pressure zone.", emoji: "🟧" };
+      }
+      return { title: "Total Barotrauma", verdict: "A long way from the habitat.", emoji: "⬛" };
+    }
+
+    function finalRankFor(total) {
+      if (total >= 575) return "Rank: Hadal Sovereign (One in a Krillion)";
+      if (total >= 520) return "Rank: Bathysphere Pilot";
+      if (total >= 440) return "Rank: Twilight Navigator";
+      if (total >= 320) return "Rank: Continental Shelf Diver";
+      return "Rank: Landlubber";
+    }
+
+    function directionFor(guess, actual, error) {
+      if (error === 0) return "You matched the typical depth.";
+      if (guess > actual) return `${formatMeters(error)} too deep`;
+      return `${formatMeters(error)} too shallow`;
+    }
+
+    async function fetchWikiThumb(query) {
+      const url = `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(query)}`;
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      const data = await res.json();
+      return data?.thumbnail?.source || null;
+    }
+
+    async function loadCreaturePhoto(targetCreature) {
+      photoWrap.classList.add("hidden");
+      photoEl.src = "";
+      try {
+        let src = await fetchWikiThumb(targetCreature.name);
+        if (!src && targetCreature.latin) {
+          src = await fetchWikiThumb(targetCreature.latin);
+        }
+        if (src && creature === targetCreature) {
+          photoEl.src = src;
+          photoEl.alt = targetCreature.name;
+          photoWrap.classList.remove("hidden");
+        }
+      } catch {
+        photoWrap.classList.add("hidden");
+      }
+    }
+
+    function showCreature() {
+      roundLabel.textContent = `Species · ${roundIndex + 1} of ${ROUNDS_PER_GAME}`;
+      nameEl.textContent = creature.name;
+      latinEl.textContent = creature.latin;
+      blurbEl.textContent = creature.blurb;
+      loadCreaturePhoto(creature);
+    }
+
+    function updateSessionHeader() {
+      const runningTotal = history.reduce((sum, item) => sum + item.score, 0);
+      sessionEl.textContent = `${runningTotal} / ${ROUNDS_PER_GAME * 100} pts`;
+      renderRoundDots();
+    }
+
+    function reveal() {
+      phase = "reveal";
+      depthInput.disabled = true;
+      const guess = currentGuess();
+      const { error, score } = scoreFor(guess, creature.depth);
+      const tier = tierFor(score, error);
+
+      history.push({
+        name: creature.name,
+        guess,
+        actual: creature.depth,
+        score,
+        emoji: tier.emoji,
+        title: tier.title,
+      });
+
+      updateSessionHeader();
+
+      tierTitleEl.textContent = tier.title;
+      scoreEl.textContent = String(score);
+      deltaEl.textContent = directionFor(guess, creature.depth, error);
+      actualLine.textContent = `Actual ${formatMeters(creature.depth)}`;
+      verdictEl.textContent = `${tier.verdict} ${creature.fact}`;
+
+      promptEl.classList.add("hidden");
+      resultEl.classList.remove("hidden");
+      actualMarker.classList.remove("hidden");
+      actualTag.classList.remove("hidden");
+      errorSpan.classList.remove("hidden");
+      actionBtn.textContent = roundIndex + 1 >= ROUNDS_PER_GAME ? "View Final Score" : "Next creature";
+
+      placeGuessTag();
+      placeActual();
+    }
+
+    function showSummary(savedState) {
+      gameView.classList.add("hidden");
+      summaryView.classList.remove("hidden");
+      applyOcean(6500);
+
+      const totalScore = history.reduce((sum, item) => sum + item.score, 0);
+      summaryKicker.textContent = isPractice ? "Practice Set Complete" : `Daily Complete · ${getTodayKey()}`;
+      finalScoreEl.textContent = String(totalScore);
+      finalRankEl.textContent = finalRankFor(totalScore);
+      statStreakEl.textContent = `${savedState.streak || 1} 🔥`;
+      statBestEl.textContent = String(Math.max(savedState.bestTotal || 0, totalScore));
+
+      breakdownList.innerHTML = "";
+      history.forEach((item, idx) => {
+        const row = document.createElement("div");
+        row.className = "flex items-center justify-between py-2.5 text-sm";
+        row.innerHTML = `
+          <div class="flex items-center gap-3">
+            <span>${item.emoji}</span>
+            <div>
+              <p class="font-medium">${idx + 1}. ${item.name}</p>
+              <p class="text-xs muted">Guessed ${formatMeters(item.guess)} · Actual ${formatMeters(item.actual)}</p>
+            </div>
+          </div>
+          <div class="text-right">
+            <p class="font-medium tabular-nums">${item.score} / 100</p>
+            <p class="text-[0.65rem] uppercase tracking-wider muted">${item.title}</p>
+          </div>
+        `;
+        breakdownList.appendChild(row);
+      });
+
+      renderRoundDots();
+    }
+
+    function nextRound() {
+      if (roundIndex + 1 >= ROUNDS_PER_GAME) {
+        const totalScore = history.reduce((sum, item) => sum + item.score, 0);
+        const savedState = isPractice ? loadState() : saveDailyCompletion(totalScore, history);
+        showSummary(savedState);
+        return;
+      }
+
+      roundIndex += 1;
+      creature = deck[roundIndex];
+      phase = "guess";
+      depthInput.disabled = false;
+      promptEl.classList.remove("hidden");
+      resultEl.classList.add("hidden");
+      actualMarker.classList.add("hidden");
+      actualTag.classList.add("hidden");
+      errorSpan.classList.add("hidden");
+      actionBtn.textContent = "Submit";
+      guessTag.style.transform = "translateY(-50%)";
+
+      showCreature();
+      placeGuessTag();
+      renderRoundDots();
+      depthInput.focus();
+    }
+
+    function startSession(practiceMode = false) {
+      isPractice = practiceMode;
+      modeBadge.textContent = isPractice ? "Practice" : "Daily";
+      const seed = isPractice ? `practice-${Date.now()}-${Math.random()}` : `daily-${getTodayKey()}`;
+      deck = buildDeck(seed);
+      roundIndex = 0;
+      history = [];
+      creature = deck[0];
+      phase = "guess";
+
+      summaryView.classList.add("hidden");
+      gameView.classList.remove("hidden");
+      depthInput.disabled = false;
+      depthInput.value = "0";
+      promptEl.classList.remove("hidden");
+      resultEl.classList.add("hidden");
+      actualMarker.classList.add("hidden");
+      actualTag.classList.add("hidden");
+      errorSpan.classList.add("hidden");
+      actionBtn.textContent = "Submit";
+
+      applyOcean(0);
+      renderZones();
+      showCreature();
+      updateSessionHeader();
+      placeGuessTag();
+    }
+
+    shareBtn.addEventListener("click", async () => {
+      const totalScore = history.reduce((sum, item) => sum + item.score, 0);
+      const grid = history.map((h) => h.emoji).join("");
+      const tag = isPractice ? "Practice" : getTodayKey();
+      const text = `DEEPLE (${tag})\nScore: ${totalScore} / 600\n${grid}\n${finalRankFor(totalScore)}`;
+      try {
+        await navigator.clipboard.writeText(text);
+        shareBtn.textContent = "Copied to Clipboard!";
+        setTimeout(() => { shareBtn.textContent = "Share Results"; }, 2200);
+      } catch {
+        shareBtn.textContent = "Copy Failed";
+      }
+    });
+
+    practiceBtn.addEventListener("click", () => {
+      startSession(true);
+    });
+
+    function updateCountdown() {
+      const now = new Date();
+      const midnight = new Date(now);
+      midnight.setHours(24, 0, 0, 0);
+      const diff = Math.max(0, midnight - now);
+      const h = String(Math.floor(diff / 3600000)).padStart(2, "0");
+      const m = String(Math.floor((diff % 3600000) / 60000)).padStart(2, "0");
+      const s = String(Math.floor((diff % 60000) / 1000)).padStart(2, "0");
+      countdownEl.textContent = `Next Daily in ${h}:${m}:${s}`;
+    }
+
+    setInterval(updateCountdown, 1000);
+    updateCountdown();
+
+    depthInput.addEventListener("input", () => {
+      applyOcean(currentGuess());
+      placeGuessTag();
+      if (phase === "reveal") placeActual();
+    });
+
+    depthInput.addEventListener("keydown", (event) => {
+      if (phase === "reveal") return;
+      if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+      event.preventDefault();
+      const step = event.shiftKey ? 500 : 50;
+      const delta = event.key === "ArrowUp" ? -step : step;
+      const next = Math.min(MAX_DEPTH, Math.max(0, currentGuess() + delta));
+      depthInput.value = String(next);
+      depthInput.dispatchEvent(new Event("input"));
+    });
+
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      if (phase === "guess") reveal();
+      else nextRound();
+    });
+
+    window.addEventListener("resize", () => {
+      renderZones();
+      placeGuessTag();
+      if (phase === "reveal") placeActual();
+    });
+
+    // Boot: Check if today's Daily was already completed
+    const existingState = loadState();
+    if (existingState.lastDate === getTodayKey() && existingState.lastHistory?.length === ROUNDS_PER_GAME) {
+      history = existingState.lastHistory;
+      showSummary(existingState);
+    } else {
+      startSession(false);
+    }
+  </script>
+</body>
+</html>
