@@ -130,15 +130,44 @@
 
     #actual-tag,
     #guess-tag {
-      text-shadow: 0 1px 0 color-mix(in srgb, var(--sea-bottom) 35%, transparent);
+      background: color-mix(in srgb, var(--inverse) 35%, transparent);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      padding: 4px 8px;
+      border-radius: 6px;
+      z-index: 10;
+      text-shadow: none;
     }
+    #zones { z-index: 0; }
 
     @media (prefers-reduced-motion: reduce) {
       #actual-marker { transition: none; }
     }
+
+    /* God Rays & Wobble */
+    .god-rays {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      pointer-events: none; z-index: -1;
+      background: repeating-linear-gradient(45deg, transparent, transparent 10%, rgba(255, 255, 255, 0.03) 10%, rgba(255, 255, 255, 0.03) 20%);
+      background-size: 200% 200%;
+      animation: shiftRays 30s linear infinite;
+    }
+    @keyframes shiftRays { 0% { background-position: 0 0; } 100% { background-position: 100% 100%; } }
+    
+    #fill { transition: width 160ms ease; }
+    .is-dragging #fill { width: 4px; box-shadow: 0 0 10px var(--inverse); }
+    
+    @keyframes score-pop {
+      0% { opacity: 0; transform: scale(0.8) translateY(15px); }
+      60% { transform: scale(1.05) translateY(-2px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+    .animate-score-pop { animation: score-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
+    
   </style>
 </head>
 <body class="min-h-screen antialiased">
+  <div class="god-rays"></div>
   <div class="mx-auto flex min-h-screen max-w-6xl flex-col px-5 py-6 md:px-10 md:py-8">
     <header class="flex items-center justify-between">
       <div class="flex items-center gap-4">
@@ -150,14 +179,25 @@
         <p id="session" class="text-xs tabular-nums muted"></p>
       </div>
     </header>
+  <!-- START SCREEN OVERLAY -->
+  <div id="start-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#0c1c2a]/95 backdrop-blur-md transition-opacity duration-500">
+    <h2 class="text-3xl font-medium tracking-[0.2em] uppercase text-white">Deeple</h2>
+    <p class="mt-4 max-w-xs text-center text-sm leading-relaxed text-white/70">You have 10 seconds per creature to lock in your depth. Miss by 2,500 meters and you score zero.</p>
+    <button id="begin-btn" type="button" class="mt-8 border border-white/30 bg-white/5 px-8 py-3 text-[0.68rem] font-medium tracking-[0.22em] uppercase text-white transition-colors hover:bg-white hover:text-[#0c1c2a]">
+      Begin Daily
+    </button>
+  </div>  
 
     <main id="game-view" class="grid flex-1 items-center gap-10 py-8 md:grid-cols-[minmax(0,1fr)_16rem_minmax(0,1fr)] md:gap-8 md:py-6">
       <!-- LEFT: Species Info & Auto-Fetched Photo -->
       <section class="max-w-sm md:justify-self-start">
         <p id="round-label" class="text-[0.68rem] font-medium tracking-[0.24em] uppercase muted">Species · 1 of 6</p>
+        <div class="mt-3 h-1 w-full rounded-full overflow-hidden" style="background: var(--line)">
+          <div id="timer-bar" class="h-full w-full transition-all duration-100" style="background: var(--mark)"></div>
+        </div>
         
         <div id="photo-wrap" class="mt-4 hidden overflow-hidden rounded-lg" style="border: 1px solid var(--line); background: rgba(0,0,0,0.12);">
-          <img id="creature-photo" src="" alt="" class="h-44 w-full object-cover transition-opacity duration-300" loading="eager">
+          <img id="creature-photo" src="" alt="" class="h-44 w-full object-cover transition-opacity duration-300" loading="eager" style="filter: grayscale(100%) contrast(120%) opacity(85%);">
         </div>
 
         <h1 id="creature-name" class="mt-4 text-4xl font-medium tracking-tight md:text-5xl">—</h1>
@@ -185,7 +225,7 @@
             type="range"
             min="0"
             max="11000"
-            step="10"
+            step="50"
             value="0"
             aria-label="Habitat depth in meters"
             aria-orientation="vertical"
@@ -302,6 +342,18 @@
       { name: "Abyssal grenadier", latin: "Coryphaenoides armatus", depth: 5100, blurb: "A rattail fish, common and widespread on the deep seafloor.", fact: "This grenadier is a regular resident near 5,100 m." },
       { name: "Mariana snailfish", latin: "Pseudoliparis swirei", depth: 8000, blurb: "A small, translucent fish of trench walls.", fact: "It is the deepest known fish, living around 8,000 m in the Mariana Trench." },
       { name: "Hadal amphipod", latin: "Hirondellea gigas", depth: 10400, blurb: "A scavenging crustacean of the deepest trench floors.", fact: "Hirondellea gigas patrols the hadal seafloor near 10,400 m." },
+      { name: "Ocean sunfish", latin: "Mola mola", depth: 0, blurb: "A massive, flat fish that basks on its side at the surface.", fact: "While it dives deep to hunt, it spends hours at the absolute surface rewarming." },
+      { name: "Flying fish", latin: "Exocoetidae", depth: 0, blurb: "A fish that leaps from the water to glide on wing-like fins.", fact: "They exist almost entirely in the top meter of the ocean to escape predators." },
+      { name: "Narwhal", latin: "Monodon monoceros", depth: 400, blurb: "An Arctic whale famous for its long, spiraled tusk.", fact: "They typically hunt for flatfish during dives of around 400 to 800 m." },
+      { name: "Giant oarfish", latin: "Regalecus glesne", depth: 700, blurb: "A ribbon-like fish that can grow longer than a school bus.", fact: "Often called 'sea serpents', they hang vertically in the twilight zone around 700 m." },
+      { name: "Gulper eel", latin: "Eurypharynx pelecanoides", depth: 1400, blurb: "A deep-sea eel with a massive, pelican-like mouth.", fact: "It uses its massive jaw to swallow prey whole in the midnight zone near 1,400 m." },
+      { name: "Goblin shark", latin: "Mitsukurina owstoni", depth: 900, blurb: "A prehistoric shark with a protruding, catapult-like jaw.", fact: "It hunts in the dark around 900 m, sensing electrical fields with its long snout." },
+      { name: "Deep-sea hatchetfish", latin: "Sternoptychidae", depth: 600, blurb: "A small, ghostly fish with glowing organs on its belly.", fact: "It uses 'counter-illumination' near 600 m to camouflage against the faint surface light." },
+      { name: "Tripod fish", latin: "Bathypterois grallator", depth: 4000, blurb: "A benthic fish that stands on the seafloor using stilt-like fins.", fact: "It faces into the current around 4,000 m, waiting for food to bump into its fins." },
+      { name: "Sea angel", latin: "Gymnosomata", depth: 250, blurb: "A translucent, wing-flapping sea slug that hunts other snails.", fact: "Despite their angelic look, they are ruthless predators cruising around 250 m." },
+      { name: "Megamouth shark", latin: "Megachasma pelagios", depth: 200, blurb: "A rare, flabby shark with a massive, glowing mouth.", fact: "It follows the plankton migration, feeding mostly around 150 to 200 m down." },
+      { name: "Sixgill shark", latin: "Hexanchus griseus", depth: 1100, blurb: "A primitive, heavy-bodied shark that rarely sees the sun.", fact: "It scavenges the ocean floor, typically hanging around 1,100 m deep." },
+      { name: "Pacific hagfish", latin: "Eptatretus stoutii", depth: 500, blurb: "A jawless, eel-like scavenger famous for producing thick slime.", fact: "They burrow into dead whale carcasses on the seafloor, commonly around 500 m." }
     ];
 
     const ZONES = [
@@ -365,6 +417,10 @@
     let phase = "guess";
     let history = [];
     let isPractice = false;
+    let imageCache = {};
+    let timeLeft = 10000; // 10 seconds
+    let timerInterval;
+    const timerBarEl = document.getElementById("timer-bar");
 
     function getTodayKey() {
       const now = new Date();
@@ -540,27 +596,17 @@
 
     function scoreFor(guess, actual) {
       const error = Math.abs(guess - actual);
-      const score = Math.max(0, Math.round(100 * (1 - error / MAX_DEPTH)));
+      const score = Math.max(0, Math.round(100 * (1 - error / 2500)));
       return { error, score };
     }
 
     function tierFor(score, error) {
-      if (error === 0 || score === 100) {
-        return { title: "One in a Krillion!", verdict: "Dead on the habitat depth.", emoji: "🟦" };
-      }
-      if (score >= 94) {
-        return { title: "Abyssal Sniper", verdict: "Pinpoint accuracy on the scale of the ocean.", emoji: "🟦" };
-      }
-      if (score >= 85) {
-        return { title: "Deep-Cut", verdict: "Right in the creature's water column.", emoji: "🟩" };
-      }
-      if (score >= 70) {
-        return { title: "Schooler", verdict: "Right neighborhood of the water column.", emoji: "🟨" };
-      }
-      if (score >= 45) {
-        return { title: "Off the Drop-Off", verdict: "Drifted out of their pressure zone.", emoji: "🟧" };
-      }
-      return { title: "Total Barotrauma", verdict: "A long way from the habitat.", emoji: "⬛" };
+      if (error === 0 || score === 100) return { title: "Abyssal Oracle", verdict: "Dead on the habitat depth.", emoji: "🟦" };
+      if (score >= 94) return { title: "Trench Sniper", verdict: "Pinpoint accuracy on the scale of the ocean.", emoji: "🟦" };
+      if (score >= 85) return { title: "Pelagic Pilot", verdict: "Right in the creature's water column.", emoji: "🟩" };
+      if (score >= 70) return { title: "Current Rider", verdict: "Right neighborhood of the water column.", emoji: "🟨" };
+      if (score >= 45) return { title: "Off the Shelf", verdict: "Drifted out of their pressure zone.", emoji: "🟧" };
+      return { title: "Crushed by Pressure", verdict: "A long way from the habitat.", emoji: "⬛" };
     }
 
     function finalRankFor(total) {
@@ -588,18 +634,39 @@
     async function loadCreaturePhoto(targetCreature) {
       photoWrap.classList.add("hidden");
       photoEl.src = "";
+      
+      if (imageCache[targetCreature.name]) {
+        photoEl.src = imageCache[targetCreature.name];
+        photoEl.alt = targetCreature.name;
+        photoWrap.classList.remove("hidden");
+        return;
+      }
+
       try {
         let src = await fetchWikiThumb(targetCreature.name);
-        if (!src && targetCreature.latin) {
-          src = await fetchWikiThumb(targetCreature.latin);
-        }
+        if (!src && targetCreature.latin) src = await fetchWikiThumb(targetCreature.latin);
         if (src && creature === targetCreature) {
+          imageCache[targetCreature.name] = src;
           photoEl.src = src;
           photoEl.alt = targetCreature.name;
           photoWrap.classList.remove("hidden");
         }
       } catch {
         photoWrap.classList.add("hidden");
+      }
+    }
+
+    async function preloadDeck(deckToLoad) {
+      for (const c of deckToLoad) {
+        if (!imageCache[c.name]) {
+          try {
+            let src = await fetchWikiThumb(c.name) || await fetchWikiThumb(c.latin);
+            if (src) {
+              imageCache[c.name] = src;
+              new Image().src = src; 
+            }
+          } catch {}
+        }
       }
     }
 
@@ -617,12 +684,14 @@
       renderRoundDots();
     }
 
-    function reveal() {
+    function reveal(timedOut = false) {
+      clearInterval(timerInterval); 
       phase = "reveal";
       depthInput.disabled = true;
       const guess = currentGuess();
-      const { error, score } = scoreFor(guess, creature.depth);
-      const tier = tierFor(score, error);
+      let { error, score } = scoreFor(guess, creature.depth);
+      if (timedOut) score = 0; // 0 points for running out of time
+      const tier = timedOut ? { title: "Oxygen Depleted", verdict: "You ran out of time.", emoji: "☠️" } : tierFor(score, error);
 
       history.push({
         name: creature.name,
@@ -636,13 +705,31 @@
       updateSessionHeader();
 
       tierTitleEl.textContent = tier.title;
-      scoreEl.textContent = String(score);
       deltaEl.textContent = directionFor(guess, creature.depth, error);
       actualLine.textContent = `Actual ${formatMeters(creature.depth)}`;
       verdictEl.textContent = `${tier.verdict} ${creature.fact}`;
 
       promptEl.classList.add("hidden");
-      resultEl.classList.remove("hidden");
+      
+      // Reset and trigger the pop-in animation
+      resultEl.classList.remove("hidden", "animate-score-pop");
+      void resultEl.offsetWidth; // Force a DOM reflow to cleanly restart the CSS animation
+      resultEl.classList.add("animate-score-pop");
+
+      // The Odometer Score Counter
+      const startTime = performance.now();
+      function updateCounter(currentTime) {
+        const elapsed = currentTime - startTime;
+        const progress = Math.min(elapsed / 800, 1); // 800ms animation duration
+        const easeOut = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress); // Decelerates as it hits the target
+        scoreEl.textContent = Math.floor(easeOut * score);
+        if (progress < 1) {
+          requestAnimationFrame(updateCounter);
+        } else {
+          scoreEl.textContent = score;
+        }
+      }
+      requestAnimationFrame(updateCounter);
       actualMarker.classList.remove("hidden");
       actualTag.classList.remove("hidden");
       errorSpan.classList.remove("hidden");
@@ -711,6 +798,27 @@
       placeGuessTag();
       renderRoundDots();
       depthInput.focus();
+      // Start Timer
+      clearInterval(timerInterval);
+      timeLeft = 10000;
+      timerBarEl.style.width = "100%";
+      timerInterval = setInterval(() => {
+        if (phase !== "guess") return clearInterval(timerInterval);
+        timeLeft -= 50;
+        timerBarEl.style.width = `${Math.max(0, (timeLeft / 10000) * 100)}%`;
+        
+        if (timeLeft <= 3000) {
+          timerBarEl.style.background = "#ef4444"; // Turns red at 3 seconds
+        } else {
+          timerBarEl.style.background = "var(--mark)";
+        }
+        
+        if (timeLeft <= 0) {
+          depthInput.value = "0"; // Punish them with a surface guess
+          currentGuess();
+          reveal(true); // Force reveal
+        }
+      }, 50);
     }
 
     function startSession(practiceMode = false) {
@@ -722,6 +830,7 @@
       history = [];
       creature = deck[0];
       phase = "guess";
+      preloadDeck(deck);
 
       summaryView.classList.add("hidden");
       gameView.classList.remove("hidden");
@@ -739,6 +848,29 @@
       showCreature();
       updateSessionHeader();
       placeGuessTag();
+
+      // Start Timer
+      clearInterval(timerInterval);
+      timeLeft = 10000;
+      timerBarEl.style.width = "100%";
+      timerInterval = setInterval(() => {
+        if (phase !== "guess") return clearInterval(timerInterval);
+        timeLeft -= 50;
+        timerBarEl.style.width = `${Math.max(0, (timeLeft / 10000) * 100)}%`;
+        
+        if (timeLeft <= 3000) {
+          timerBarEl.style.background = "#ef4444"; // Turns red at 3 seconds
+        } else {
+          timerBarEl.style.background = "var(--mark)";
+        }
+        
+        if (timeLeft <= 0) {
+          clearInterval(timerInterval);
+          depthInput.value = "0"; // Punish them with a surface guess
+          currentGuess();
+          reveal(true); // Force reveal
+        }
+      }, 50);
     }
 
     shareBtn.addEventListener("click", async () => {
@@ -772,6 +904,11 @@
 
     setInterval(updateCountdown, 1000);
     updateCountdown();
+    
+    depthInput.addEventListener("mousedown", () => column.classList.add("is-dragging"));
+    depthInput.addEventListener("touchstart", () => column.classList.add("is-dragging"));
+    window.addEventListener("mouseup", () => column.classList.remove("is-dragging"));
+    window.addEventListener("touchend", () => column.classList.remove("is-dragging"));
 
     depthInput.addEventListener("input", () => {
       applyOcean(currentGuess());
@@ -802,13 +939,26 @@
       if (phase === "reveal") placeActual();
     });
 
+    const startScreen = document.getElementById("start-screen");
+    const beginBtn = document.getElementById("begin-btn");
+
+    beginBtn.addEventListener("click", () => {
+      startScreen.style.opacity = "0";
+      setTimeout(() => {
+        startScreen.classList.add("hidden");
+        startSession(false);
+      }, 500);
+    });
+
     // Boot: Check if today's Daily was already completed
     const existingState = loadState();
     if (existingState.lastDate === getTodayKey() && existingState.lastHistory?.length === ROUNDS_PER_GAME) {
+      startScreen.classList.add("hidden");
       history = existingState.lastHistory;
       showSummary(existingState);
     } else {
-      startSession(false);
+      // Do not auto-start; wait for button click.
+      gameView.classList.add("hidden"); 
     }
   </script>
 </body>
