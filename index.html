@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <meta name="description" content="Deeple: A daily ocean depth-guessing game. Test your marine biology knowledge.">
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Deeple</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -34,6 +35,7 @@
     html,
     body {
       min-height: 100%;
+      overscroll-behavior: none;
     }
 
     body {
@@ -179,35 +181,38 @@
         <p id="session" class="text-xs tabular-nums muted"></p>
       </div>
     </header>
-  <!-- START SCREEN OVERLAY -->
-  <div id="start-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center bg-[#0c1c2a]/95 backdrop-blur-md transition-opacity duration-500">
-    <h2 class="text-3xl font-medium tracking-[0.2em] uppercase text-white">Deeple</h2>
-    <p class="mt-4 max-w-xs text-center text-sm leading-relaxed text-white/70">You have 10 seconds per creature to lock in your depth. Miss by 2,500 meters and you score zero.</p>
-    <button id="begin-btn" type="button" class="mt-8 border border-white/30 bg-white/5 px-8 py-3 text-[0.68rem] font-medium tracking-[0.22em] uppercase text-white transition-colors hover:bg-white hover:text-[#0c1c2a]">
-      Begin Daily
-    </button>
-  </div>  
 
-    <main id="game-view" class="grid flex-1 items-center gap-10 py-8 md:grid-cols-[minmax(0,1fr)_16rem_minmax(0,1fr)] md:gap-8 md:py-6">
+    <!-- START SCREEN OVERLAY -->
+    <div id="start-screen" class="absolute inset-0 z-50 flex flex-col items-center justify-center backdrop-blur-md transition-opacity duration-500" style="background: rgba(12, 28, 42, 0.95);">
+      <h2 class="text-3xl font-medium tracking-[0.2em] uppercase text-white">Deeple</h2>
+      <p class="mt-4 max-w-xs text-center text-sm leading-relaxed text-white/70">You have 20 seconds per creature to lock in your depth. Miss by 2,500 meters and you score zero.</p>
+      <button id="begin-btn" type="button" class="mt-8 border border-white/30 bg-white/5 px-8 py-3 text-[0.68rem] font-medium tracking-[0.22em] uppercase text-white transition-colors hover:bg-white hover:text-black">
+        Begin Daily
+      </button>
+    </div>
+
+    <main id="game-view" class="grid flex-1 w-full items-center grid-cols-[1fr_110px] grid-rows-[auto_1fr] gap-x-2 gap-y-4 py-2 md:grid-cols-[minmax(0,1fr)_16rem_minmax(0,1fr)] md:grid-rows-1 md:gap-8 md:py-6 overflow-hidden">
+      
       <!-- LEFT: Species Info & Auto-Fetched Photo -->
-      <section class="max-w-sm md:justify-self-start">
+      <section class="col-start-1 row-start-1 md:col-auto md:row-auto max-w-sm md:justify-self-start z-10 flex flex-col justify-center">
         <p id="round-label" class="text-[0.68rem] font-medium tracking-[0.24em] uppercase muted">Species · 1 of 6</p>
-        <div class="mt-3 h-1 w-full rounded-full overflow-hidden" style="background: var(--line)">
+        
+        <div class="mt-2 md:mt-3 h-1 w-full rounded-full overflow-hidden" style="background: var(--line)">
           <div id="timer-bar" class="h-full w-full transition-all duration-100" style="background: var(--mark)"></div>
         </div>
-        
-        <div id="photo-wrap" class="mt-4 hidden overflow-hidden rounded-lg" style="border: 1px solid var(--line); background: rgba(0,0,0,0.12);">
-          <img id="creature-photo" src="" alt="" class="h-44 w-full object-cover transition-opacity duration-300" loading="eager" style="filter: grayscale(100%) contrast(120%) opacity(85%);">
+
+        <div id="photo-wrap" class="mt-2 md:mt-4 hidden overflow-hidden rounded-lg" style="border: 1px solid var(--line); background: rgba(0,0,0,0.12);">
+          <img id="creature-photo" src="" alt="" class="h-24 md:h-44 w-full object-cover transition-opacity duration-300" loading="eager" style="filter: grayscale(100%) contrast(120%) opacity(85%);">
         </div>
 
-        <h1 id="creature-name" class="mt-4 text-4xl font-medium tracking-tight md:text-5xl">—</h1>
-        <p id="creature-latin" class="mt-1.5 text-sm italic muted"></p>
-        <p id="creature-blurb" class="mt-5 text-sm leading-relaxed muted"></p>
+        <h1 id="creature-name" class="mt-2 md:mt-4 text-2xl md:text-5xl font-medium tracking-tight">—</h1>
+        <p id="creature-latin" class="mt-1 text-xs md:text-sm italic muted"></p>
+        <p id="creature-blurb" class="mt-2 md:mt-5 text-xs md:text-sm leading-relaxed muted line-clamp-2 md:line-clamp-none"></p>
       </section>
 
       <!-- CENTER: Depth Column -->
-      <section class="mx-auto w-full max-w-[16rem]" aria-label="Depth scale">
-        <div id="column" class="relative h-[min(58vh,440px)] md:h-[min(70vh,540px)]">
+      <section class="col-start-2 row-span-2 md:col-auto md:row-auto mx-auto w-full max-w-[110px] md:max-w-[16rem] h-full flex flex-col justify-center" aria-label="Depth scale">
+        <div id="column" class="relative h-[65vh] md:h-[min(70vh,540px)]">
           <div class="pointer-events-none absolute bottom-0 left-1/2 top-0 w-px -translate-x-1/2" style="background: var(--line)"></div>
           <div id="fill" class="pointer-events-none absolute left-1/2 top-0 w-px -translate-x-1/2" style="height: 0; background: var(--ink)"></div>
           <div id="error-span" class="pointer-events-none absolute left-1/2 hidden w-px -translate-x-1/2" style="background: var(--mark)"></div>
@@ -225,7 +230,7 @@
             type="range"
             min="0"
             max="11000"
-            step="50"
+            step="10"
             value="0"
             aria-label="Habitat depth in meters"
             aria-orientation="vertical"
@@ -242,7 +247,7 @@
       </section>
 
       <!-- RIGHT: Controls & Feedback -->
-      <section class="max-w-xs md:justify-self-end">
+      <section class="col-start-1 row-start-2 md:col-auto md:row-auto max-w-xs md:justify-self-end z-10 flex flex-col justify-start md:justify-center">
         <form id="guess-form">
           <div id="prompt">
             <p class="text-[0.68rem] font-medium tracking-[0.24em] uppercase muted">Your guess</p>
@@ -418,7 +423,7 @@
     let history = [];
     let isPractice = false;
     let imageCache = {};
-    let timeLeft = 10000; // 10 seconds
+    let timeLeft = 20000;
     let timerInterval;
     const timerBarEl = document.getElementById("timer-bar");
 
@@ -685,23 +690,16 @@
     }
 
     function reveal(timedOut = false) {
-      clearInterval(timerInterval); 
+      clearInterval(timerInterval);
       phase = "reveal";
       depthInput.disabled = true;
       const guess = currentGuess();
       let { error, score } = scoreFor(guess, creature.depth);
-      if (timedOut) score = 0; // 0 points for running out of time
+      
+      if (timedOut) score = 0;
       const tier = timedOut ? { title: "Oxygen Depleted", verdict: "You ran out of time.", emoji: "☠️" } : tierFor(score, error);
 
-      history.push({
-        name: creature.name,
-        guess,
-        actual: creature.depth,
-        score,
-        emoji: tier.emoji,
-        title: tier.title,
-      });
-
+      history.push({ name: creature.name, guess, actual: creature.depth, score, emoji: tier.emoji, title: tier.title });
       updateSessionHeader();
 
       tierTitleEl.textContent = tier.title;
@@ -709,19 +707,27 @@
       actualLine.textContent = `Actual ${formatMeters(creature.depth)}`;
       verdictEl.textContent = `${tier.verdict} ${creature.fact}`;
 
+      // The Golden Perfect Logic
+      if (score === 100) {
+        tierTitleEl.className = "text-xs font-semibold tracking-[0.22em] uppercase text-yellow-400";
+        scoreEl.parentElement.className = "mt-2 flex items-baseline gap-2 text-yellow-400";
+        deltaEl.className = "mt-3 text-sm font-medium text-yellow-400";
+        actualLine.className = "mt-0.5 text-xs text-yellow-400/80";
+      }
+
       promptEl.classList.add("hidden");
       
       // Reset and trigger the pop-in animation
       resultEl.classList.remove("hidden", "animate-score-pop");
-      void resultEl.offsetWidth; // Force a DOM reflow to cleanly restart the CSS animation
+      void resultEl.offsetWidth;
       resultEl.classList.add("animate-score-pop");
 
       // The Odometer Score Counter
       const startTime = performance.now();
       function updateCounter(currentTime) {
         const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / 800, 1); // 800ms animation duration
-        const easeOut = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress); // Decelerates as it hits the target
+        const progress = Math.min(elapsed / 800, 1);
+        const easeOut = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
         scoreEl.textContent = Math.floor(easeOut * score);
         if (progress < 1) {
           requestAnimationFrame(updateCounter);
@@ -730,6 +736,7 @@
         }
       }
       requestAnimationFrame(updateCounter);
+
       actualMarker.classList.remove("hidden");
       actualTag.classList.remove("hidden");
       errorSpan.classList.remove("hidden");
@@ -787,36 +794,44 @@
       phase = "guess";
       depthInput.disabled = false;
       promptEl.classList.remove("hidden");
-      resultEl.classList.add("hidden");
+      resultEl.classList.add("hidden", "animate-score-pop");
       actualMarker.classList.add("hidden");
       actualTag.classList.add("hidden");
       errorSpan.classList.add("hidden");
       actionBtn.textContent = "Submit";
+      
+      // Reset Gold Colors
+      tierTitleEl.className = "text-xs font-semibold tracking-[0.22em] uppercase mark";
+      scoreEl.parentElement.className = "mt-2 flex items-baseline gap-2";
+      deltaEl.className = "mt-3 text-sm font-medium";
+      actualLine.className = "mt-0.5 text-xs muted";
       guessTag.style.transform = "translateY(-50%)";
 
       showCreature();
       placeGuessTag();
       renderRoundDots();
       depthInput.focus();
+      
       // Start Timer
       clearInterval(timerInterval);
-      timeLeft = 10000;
+      timeLeft = 20000;
       timerBarEl.style.width = "100%";
       timerInterval = setInterval(() => {
         if (phase !== "guess") return clearInterval(timerInterval);
         timeLeft -= 50;
-        timerBarEl.style.width = `${Math.max(0, (timeLeft / 10000) * 100)}%`;
+        timerBarEl.style.width = `${Math.max(0, (timeLeft / 20000) * 100)}%`;
         
-        if (timeLeft <= 3000) {
-          timerBarEl.style.background = "#ef4444"; // Turns red at 3 seconds
+        if (timeLeft <= 5000) {
+          timerBarEl.style.background = "#ef4444";
         } else {
           timerBarEl.style.background = "var(--mark)";
         }
         
         if (timeLeft <= 0) {
-          depthInput.value = "0"; // Punish them with a surface guess
+          clearInterval(timerInterval);
+          depthInput.value = "0";
           currentGuess();
-          reveal(true); // Force reveal
+          reveal(true);
         }
       }, 50);
     }
@@ -837,7 +852,7 @@
       depthInput.disabled = false;
       depthInput.value = "0";
       promptEl.classList.remove("hidden");
-      resultEl.classList.add("hidden");
+      resultEl.classList.add("hidden", "animate-score-pop");
       actualMarker.classList.add("hidden");
       actualTag.classList.add("hidden");
       errorSpan.classList.add("hidden");
@@ -851,24 +866,24 @@
 
       // Start Timer
       clearInterval(timerInterval);
-      timeLeft = 10000;
+      timeLeft = 20000;
       timerBarEl.style.width = "100%";
       timerInterval = setInterval(() => {
         if (phase !== "guess") return clearInterval(timerInterval);
         timeLeft -= 50;
-        timerBarEl.style.width = `${Math.max(0, (timeLeft / 10000) * 100)}%`;
+        timerBarEl.style.width = `${Math.max(0, (timeLeft / 20000) * 100)}%`;
         
-        if (timeLeft <= 3000) {
-          timerBarEl.style.background = "#ef4444"; // Turns red at 3 seconds
+        if (timeLeft <= 5000) {
+          timerBarEl.style.background = "#ef4444";
         } else {
           timerBarEl.style.background = "var(--mark)";
         }
         
         if (timeLeft <= 0) {
           clearInterval(timerInterval);
-          depthInput.value = "0"; // Punish them with a surface guess
+          depthInput.value = "0";
           currentGuess();
-          reveal(true); // Force reveal
+          reveal(true);
         }
       }, 50);
     }
@@ -920,7 +935,7 @@
       if (phase === "reveal") return;
       if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
       event.preventDefault();
-      const step = event.shiftKey ? 500 : 50;
+      const step = event.shiftKey ? 100 : 10;
       const delta = event.key === "ArrowUp" ? -step : step;
       const next = Math.min(MAX_DEPTH, Math.max(0, currentGuess() + delta));
       depthInput.value = String(next);
@@ -950,14 +965,12 @@
       }, 500);
     });
 
-    // Boot: Check if today's Daily was already completed
     const existingState = loadState();
     if (existingState.lastDate === getTodayKey() && existingState.lastHistory?.length === ROUNDS_PER_GAME) {
       startScreen.classList.add("hidden");
       history = existingState.lastHistory;
       showSummary(existingState);
     } else {
-      // Do not auto-start; wait for button click.
       gameView.classList.add("hidden"); 
     }
   </script>
