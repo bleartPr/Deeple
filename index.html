@@ -166,7 +166,16 @@
       100% { opacity: 1; transform: scale(1) translateY(0); }
     }
     .animate-score-pop { animation: score-pop 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards; }
-    
+
+    /* Hide number input arrows */
+    input[type="number"]::-webkit-inner-spin-button, 
+    input[type="number"]::-webkit-outer-spin-button { 
+      -webkit-appearance: none; margin: 0; 
+    }
+    input[type="number"] { 
+      -moz-appearance: textfield; 
+      appearance: textfield; 
+    }
   </style>
 </head>
 <body class="min-h-screen antialiased">
@@ -192,11 +201,11 @@
       </button>
     </div>
 
-    <main id="game-view" class="grid flex-1 w-full items-center grid-cols-[1fr_110px] grid-rows-[auto_1fr] gap-x-2 gap-y-4 py-2 md:grid-cols-[minmax(0,1fr)_16rem_minmax(0,1fr)] md:grid-rows-1 md:gap-8 md:py-6 overflow-hidden">
+    <main id="game-view" class="grid flex-1 w-full items-center grid-cols-[1fr_110px] grid-rows-[auto_1fr] gap-x-2 gap-y-4 py-2 md:grid-cols-[minmax(0,1fr)_16rem_minmax(0,1fr)] md:grid-rows-1 md:gap-8 md:py-6 overflow-hidden" style="display: none;">
       
       <!-- LEFT: Species Info & Auto-Fetched Photo -->
       <section class="col-start-1 row-start-1 md:col-auto md:row-auto max-w-sm md:justify-self-start z-10 flex flex-col justify-center">
-        <p id="round-label" class="text-[0.68rem] font-medium tracking-[0.24em] uppercase muted">Species · 1 of 6</p>
+        <p id="round-label" class="text-[0.68rem] font-medium tracking-[0.24em] uppercase muted">Target · 1 of 6</p>
         
         <div class="mt-2 md:mt-3 h-1 w-full rounded-full overflow-hidden" style="background: var(--line)">
           <div id="timer-bar" class="h-full w-full transition-all duration-100" style="background: var(--mark)"></div>
@@ -231,7 +240,7 @@
             type="range"
             min="0"
             max="11000"
-            step="10"
+            step="1"
             value="0"
             aria-label="Habitat depth in meters"
             aria-orientation="vertical"
@@ -252,8 +261,11 @@
         <form id="guess-form">
           <div id="prompt">
             <p class="text-[0.68rem] font-medium tracking-[0.24em] uppercase muted">Your guess</p>
-            <p id="guess-readout" class="mt-3 text-4xl font-medium tabular-nums tracking-tight">0 m</p>
-            <p class="mt-4 text-sm leading-relaxed muted">Drag the column from the surface to the trench, then submit.</p>
+            <div class="mt-3 flex items-baseline gap-1">
+              <input type="number" id="guess-input" class="w-32 bg-transparent text-4xl font-medium tabular-nums tracking-tight focus:outline-none focus:border-b-2 focus:border-[var(--line)]" min="0" max="11000" value="0">
+              <span class="text-4xl font-medium">m</span>
+            </div>
+            <p class="mt-4 text-sm leading-relaxed muted">Drag the column, or tap the number to type exactly.</p>
           </div>
 
           <div id="result" class="hidden" aria-live="polite">
@@ -359,7 +371,30 @@
       { name: "Sea angel", latin: "Gymnosomata", depth: 250, blurb: "A translucent, wing-flapping sea slug that hunts other snails.", fact: "Despite their angelic look, they are ruthless predators cruising around 250 m." },
       { name: "Megamouth shark", latin: "Megachasma pelagios", depth: 200, blurb: "A rare, flabby shark with a massive, glowing mouth.", fact: "It follows the plankton migration, feeding mostly around 150 to 200 m down." },
       { name: "Sixgill shark", latin: "Hexanchus griseus", depth: 1100, blurb: "A primitive, heavy-bodied shark that rarely sees the sun.", fact: "It scavenges the ocean floor, typically hanging around 1,100 m deep." },
-      { name: "Pacific hagfish", latin: "Eptatretus stoutii", depth: 500, blurb: "A jawless, eel-like scavenger famous for producing thick slime.", fact: "They burrow into dead whale carcasses on the seafloor, commonly around 500 m." }
+      { name: "Pacific hagfish", latin: "Eptatretus stoutii", depth: 500, blurb: "A jawless, eel-like scavenger famous for producing thick slime.", fact: "They burrow into dead whale carcasses on the seafloor, commonly around 500 m." },
+      // Landmarks & Human Limits
+      { name: "RMS Titanic", latin: "", depth: 3800, blurb: "The famous luxury ocean liner that sank in 1912.", fact: "It rests in the midnight zone, slowly being consumed by iron-eating bacteria." },
+      { name: "Burj Khalifa", latin: "", depth: 828, blurb: "The tallest building in the world, inverted into the ocean.", fact: "Even flipped upside down, its tip wouldn't even reach the midnight zone." },
+      { name: "Scuba diving", latin: "", depth: 40, blurb: "The maximum safe depth limit for standard recreational scuba diving.", fact: "Going deeper requires specialized gas mixtures to avoid nitrogen narcosis." },
+      { name: "Trieste (bathyscaphe)", latin: "", depth: 10911, blurb: "The first manned vessel to reach the bottom of the Mariana Trench.", fact: "It took nearly 5 hours to sink to the bottom in 1960." },
+      { name: "Statue of Liberty", latin: "", depth: 93, blurb: "The iconic copper statue, submerged from torch to base.", fact: "If placed in the ocean, it would barely scratch the surface layer." },
+      { name: "USS Johnston (DD-557)", latin: "", depth: 6456, blurb: "One of the deepest known shipwrecks ever discovered.", fact: "It sank during WWII and was found incredibly well-preserved in the abyss." },
+      { name: "Eiffel Tower", latin: "", depth: 330, blurb: "The wrought-iron landmark of Paris, dropped into the sea.", fact: "Its tip would reach just above where the sunlight starts to rapidly fade." },
+      { name: "Ahmed Gabr", latin: "", depth: 332, blurb: "The world record for the deepest scuba dive by a human.", fact: "It took him 14 minutes to descend, and nearly 14 hours to safely ascend." },
+      { name: "Seawolf-class submarine", latin: "", depth: 490, blurb: "The estimated maximum operating depth of a US nuclear attack submarine.", fact: "While classified, they operate heavily in the twilight zone to avoid detection." },
+      { name: "Average Ocean Depth", latin: "", depth: 3682, blurb: "The mathematical average depth of all the Earth's oceans combined.", fact: "Most of the ocean is a vast, flat abyssal plain lying in perpetual darkness." },
+      { name: "Bismarck (Battleship)", latin: "", depth: 4790, blurb: "The wreck of the infamous WWII German battleship.", fact: "It sits upright on the side of an extinct underwater volcano." },
+      { name: "Deepwater Horizon", latin: "", depth: 1500, blurb: "The blown-out Macondo wellhead from the 2010 oil spill.", fact: "Operating at 1,500m was pushing the limits of deep-water drilling technology at the time." },
+      { name: "Herbert Nitsch (Freediving)", latin: "", depth: 214, blurb: "The 'No Limits' freediving world record on a single breath of air.", fact: "He used a weighted sled to descend and a lift bag to safely ascend." },
+      { name: "Vela incident (Hydrophones)", latin: "", depth: 850, blurb: "The SOFAR channel depth where sound travels the furthest.", fact: "Military hydrophones hang at this exact depth to listen for nuclear explosions across oceans." },
+      { name: "DSV Alvin", latin: "", depth: 4500, blurb: "The workhorse research submarine that explored the Titanic.", fact: "It was famously attacked by a swordfish at 610m in 1967." },
+      { name: "Giant Kelp Forests", latin: "", depth: 30, blurb: "Massive underwater forests of brown algae.", fact: "They need sunlight to survive, anchoring to the rocky bottom in shallow coastal waters." },
+      { name: "Vasco da Gama bridge", latin: "", depth: 155, blurb: "The tallest bridge in Europe, flipped completely upside down into the ocean.", fact: "Its pillars would rest entirely in the sunlit Epipelagic zone." },
+      { name: "Lake Baikal", latin: "", depth: 1642, blurb: "The maximum depth of the deepest freshwater lake on Earth.", fact: "Even the deepest lake in the world barely scratches the ocean's midnight zone." },
+      { name: "RMS Titanic", latin: "", depth: 3800, blurb: "The famous luxury ocean liner that sank in 1912.", fact: "It rests in the midnight zone, slowly being consumed by iron-eating bacteria." },
+      { name: "Burj Khalifa", latin: "", depth: 828, blurb: "The tallest building in the world, inverted into the ocean.", fact: "Even flipped upside down, its tip wouldn't even reach the midnight zone." },
+      { name: "Scuba diving limit", latin: "", depth: 40, blurb: "The maximum safe depth limit for standard recreational scuba diving.", fact: "Going deeper requires specialized gas mixtures to avoid nitrogen narcosis." },
+      { name: "Trieste (bathyscaphe)", latin: "", depth: 10911, blurb: "The first manned vessel to reach the bottom of the Mariana Trench.", fact: "It took nearly 5 hours to sink to the bottom in 1960." }
     ];
 
     const ZONES = [
@@ -401,7 +436,7 @@
     const deltaEl = document.getElementById("delta");
     const actualLine = document.getElementById("actual-line");
     const verdictEl = document.getElementById("verdict");
-    const guessReadout = document.getElementById("guess-readout");
+    const guessInput = document.getElementById("guess-input");
     const actionBtn = document.getElementById("action");
     const sessionEl = document.getElementById("session");
     const form = document.getElementById("guess-form");
@@ -550,7 +585,12 @@
         const dot = document.createElement("span");
         dot.className = "block h-2 w-2 rounded-full transition-all";
         if (i < history.length) {
-          dot.style.background = "var(--mark)";
+          if (history[i].score === 100) {
+            dot.style.background = "#facc15"; // Gold color
+            dot.style.boxShadow = "0 0 8px rgba(250, 204, 21, 0.6)"; // Glowing effect
+          } else {
+            dot.style.background = "var(--mark)";
+          }
         } else if (i === roundIndex && summaryView.classList.contains("hidden")) {
           dot.style.background = "var(--ink)";
         } else {
@@ -573,7 +613,11 @@
       fill.style.height = `${(currentGuess() / MAX_DEPTH) * 100}%`;
       depthInput.setAttribute("aria-valuenow", String(currentGuess()));
       depthInput.setAttribute("aria-valuetext", formatMeters(currentGuess()));
-      guessReadout.textContent = formatMeters(currentGuess());
+      
+      // Update the input box unless the user is actively typing in it
+      if (document.activeElement !== guessInput) {
+        guessInput.value = currentGuess();
+      }
     }
 
     function placeActual() {
@@ -677,9 +721,9 @@
     }
 
     function showCreature() {
-      roundLabel.textContent = `Species · ${roundIndex + 1} of ${ROUNDS_PER_GAME}`;
+      roundLabel.textContent = `Target · ${roundIndex + 1} of ${ROUNDS_PER_GAME}`;
       nameEl.textContent = creature.name;
-      latinEl.textContent = creature.latin;
+      latinEl.textContent = creature.latin || ""; // Safely hides the field if it's a ship/building
       blurbEl.textContent = creature.blurb;
       loadCreaturePhoto(creature);
     }
@@ -748,7 +792,7 @@
     }
 
     function showSummary(savedState) {
-      gameView.classList.add("hidden");
+      gameView.style.display = "none";
       summaryView.classList.remove("hidden");
       applyOcean(6500);
 
@@ -849,7 +893,7 @@
       preloadDeck(deck);
 
       summaryView.classList.add("hidden");
-      gameView.classList.remove("hidden");
+      gameView.style.display = "";
       depthInput.disabled = false;
       depthInput.value = "0";
       promptEl.classList.remove("hidden");
@@ -921,8 +965,14 @@
     setInterval(updateCountdown, 1000);
     updateCountdown();
     
-    depthInput.addEventListener("mousedown", () => column.classList.add("is-dragging"));
-    depthInput.addEventListener("touchstart", () => column.classList.add("is-dragging"));
+    depthInput.addEventListener("mousedown", () => {
+      depthInput.step = "10"; 
+      column.classList.add("is-dragging");
+    });
+    depthInput.addEventListener("touchstart", () => {
+      depthInput.step = "10";
+      column.classList.add("is-dragging");
+    });
     window.addEventListener("mouseup", () => column.classList.remove("is-dragging"));
     window.addEventListener("touchend", () => column.classList.remove("is-dragging"));
 
@@ -930,6 +980,16 @@
       applyOcean(currentGuess());
       placeGuessTag();
       if (phase === "reveal") placeActual();
+    });
+
+    guessInput.addEventListener("input", (e) => {
+      if (phase === "reveal") return;
+      depthInput.step = "1"; // Unlocks exact pixel-perfect precision for typing
+      let val = parseInt(e.target.value) || 0;
+      val = Math.min(MAX_DEPTH, Math.max(0, val));
+      depthInput.value = String(val);
+      applyOcean(val);
+      placeGuessTag();
     });
 
     depthInput.addEventListener("keydown", (event) => {
@@ -972,7 +1032,6 @@
       history = existingState.lastHistory;
       showSummary(existingState);
     } else {
-      gameView.classList.add("hidden"); 
     }
   </script>
 </body>
